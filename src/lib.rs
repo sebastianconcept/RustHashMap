@@ -1,62 +1,56 @@
+#![allow(dead_code, mutable_transmutes, non_camel_case_types, non_snake_case,
+    non_upper_case_globals, unused_assignments, unused_mut)]
+use std::ffi::{CStr, CString};
+use libc;
 use std::os::raw::c_char;
-use std::ffi::CString;
 
+#[repr(C)]
+pub struct Point {
+    pub x: f32,
+    pub y: f32,
+}
 
-// Return a hello world string to the caller.
-fn get_hello_world() -> String {
-    String::from("Hello world!")
+#[repr(u32)]
+pub enum Foo {
+    A = 1,
+    B,
+    C,
 }
 
 #[no_mangle]
-pub extern "C" fn c_hello_world() -> *mut c_char {
-    let rust_string: String = get_hello_world();
+pub unsafe extern "C" fn getVersion() -> *const c_char {
+    // let version = "lib version 0.1.0".to_owned();
+    // match version {
+    //     Ok(v) => CString::new(v.to_owned()),
+    //     Err(e) => (CString::new("Error trying to return the lib version")),
+    // }
+    let version = "lib version 0.1.0\0";
+    version.as_ptr().cast::<c_char>()
+}
 
-    // Convert the String into a CString
-    let c_string: CString = CString::new(rust_string).expect("Could not convert to CString");
 
-    // Instead of returning the CString, we return a pointer for it.
-    return c_string.into_raw();
+extern "C" fn returns_string() -> *const c_char {
+  "hi, there, I'm gonna be a C string\0".as_ptr().cast::<c_char>() //adding the null terminator is not optional. Gotta do it by hand.
 }
 
 #[no_mangle]
-pub extern "C" fn c_hello_world_free(ptr: *mut c_char) {
-    unsafe {
-        if ptr.is_null() {
-            // No data there, already freed probably.
-            return;
-        }
-
-        // Here we reclaim ownership of the data the pointer points to, to free the memory properly.
-        CString::from_raw(ptr);
-    }
+pub unsafe extern "C" fn print() {
+    println!("Hello from Rust via FFI")
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+#[no_mangle]
+pub unsafe extern "C" fn get_origin() -> Point {
+    Point { x: 0.0, y: 0.0 }
+}
 
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
-    }
-
-    #[test]
-    fn test_library_function_returns_correct_string() {
-        let result = get_hello_world();
-
-        assert_eq!(result, String::from("Hello world!"));
-    }
-
-    #[test]
-    fn test_library_cabi_function_works() {
-        let ptr: *mut c_char = c_hello_world();
-        let cstring;
-
-        unsafe {
-            cstring = CString::from_raw(ptr);
+#[no_mangle]
+pub unsafe extern "C" fn print_foo(foo: *const Foo) {
+    println!(
+        "{}",
+        match *foo {
+            Foo::A => "a",
+            Foo::B => "b",
+            Foo::C => "c",
         }
-
-        assert_eq!(CString::new("Hello world!").unwrap(), cstring);
-    }
+    );
 }
