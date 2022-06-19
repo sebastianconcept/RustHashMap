@@ -67,21 +67,29 @@ pub fn set(key: char_p::Box, value: char_p::Box) {
 
     let k = key.to_string();
     let v = value.to_string();
-    STORAGE.write().unwrap().set(&k,&v);
+    STORAGE.write().unwrap().set(&k, &v);
 }
 
-// #[ffi_export]
-// pub fn get(key: char_p::Box) -> char_p::Box {
-//     let answer = STORAGE.get(&key.to_string());
-//     // let answer = STORAGE
-//     //     .lock()
-//     //     .unwrap()
-//     //     .get(key.to_str())
-//     //     .unwrap()
-//     //     .to_string();
-//     // let answer = STORAGE.lock().unwrap().get(key.to_str()).unwrap_or(ptr::null());
-//     STORAGE.read().unwrap().get(&key.to_string()).unwrap()
-// }
+#[ffi_export]
+pub fn get(key: char_p::Box) -> char_p::Box {
+    // let answer = STORAGE
+    //     .lock()
+    //     .unwrap()
+    //     .get(key.to_str())
+    //     .unwrap()
+    //     .to_string();
+    // let answer = STORAGE.lock().unwrap().get(key.to_str()).unwrap_or(ptr::null());
+    //    let answer = STORAGE.read().unwrap().get(&key.to_string()).unwrap().to_owned();
+    //    answer.try_into().unwrap()
+    STORAGE
+        .read()
+        .unwrap()
+        .get(&key.to_string())
+        .unwrap()
+        .to_owned()
+        .try_into()
+        .unwrap()
+}
 
 #[ffi_export]
 pub fn getOwnedCStr() -> char_p::Box {
