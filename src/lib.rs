@@ -7,15 +7,12 @@ extern crate mut_static;
 
 use ::safer_ffi::prelude::*;
 use core::option::Option;
-use libc::c_char;
 use mut_static::MutStatic;
 use std::collections::HashMap;
-use std::ffi::CString;
 
 pub struct Storage {
     pub store: HashMap<String, String>,
 }
-// pub store: Mutex<HashMap<String, String>>
 
 impl Storage {
     pub fn new() -> Self {
@@ -31,17 +28,8 @@ impl Storage {
     }
 }
 
-// // static ref STORAGE: Mutex<HashMap<str, str>> = Mutex::new(HashMap::new());
-
 lazy_static! {
-    pub static ref STORAGE: MutStatic<Storage> = MutStatic::from(Storage::new());
-    // pub static ref STORAGE: Storage = Storage::new();
-}
-
-#[ffi_export]
-pub fn get_hello() -> *mut c_char {
-    let s = CString::new(HELLO).unwrap();
-    s.into_raw()
+    pub static ref STORAGE: MutStatic<Storage> = MutStatic::from(Storage::new());    // pub static ref STORAGE: Storage = Storage::new();
 }
 
 #[ffi_export]
@@ -52,15 +40,23 @@ pub fn set(key: char_p::Box, value: char_p::Box) {
 }
 
 #[ffi_export]
-pub fn get(key: char_p::Box) -> char_p::Box {
-    STORAGE
+pub fn get(key: char_p::Box) -> Option<char_p::Box> {
+    // let found = STORAGE
+    //     .read()
+    //     .expect("Failed to grab a lock to read in the Storage object")
+    //     .get(&key.to_string());
+    // match found {
+    //     None => None,
+    //     Some(v) => v.to_owned().try_into().unwrap(),
+    // }
+    Some(STORAGE
         .read()
         .expect("Failed to grab a lock to read in the Storage object")
         .get(&key.to_string())
         .unwrap()
         .to_owned()
         .try_into()
-        .unwrap()
+        .unwrap())
 }
 
 #[ffi_export]
@@ -79,16 +75,6 @@ pub fn echo(key: char_p::Box) -> char_p::Box {
     answer.try_into().unwrap()
 }
 
-static HELLO: &'static str = "hello from the rust lib";
-
-#[::safer_ffi::cfg_headers]
-#[test]
-fn generate_headers() -> ::std::io::Result<()> {
-    ::safer_ffi::headers::builder()
-        .to_file("target/debug/librusthashmap.h")?
-        .generate()
-}
-
 #[ffi_export]
 fn concat(fst: char_p::Ref<'_>, snd: char_p::Ref<'_>) -> char_p::Box {
     let fst = fst.to_str(); // : &'_ str
@@ -96,4 +82,12 @@ fn concat(fst: char_p::Ref<'_>, snd: char_p::Ref<'_>) -> char_p::Box {
     format!("{}{}", fst, snd) // -------+
         .try_into() //                   |
         .unwrap() // <- no inner nulls --+
+}
+
+#[::safer_ffi::cfg_headers]
+#[test]
+fn generate_headers() -> ::std::io::Result<()> {
+    ::safer_ffi::headers::builder()
+        .to_file("target/debug/librusthashmap.h")?
+        .generate()
 }
