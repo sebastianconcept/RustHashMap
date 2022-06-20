@@ -29,10 +29,21 @@ impl Storage {
     pub fn includes(&self, key: &String) -> bool {
         self.store.contains_key(key)
     }
+    pub fn reset(&mut self) {
+        self.store.clear()
+    }
 }
 
 lazy_static! {
     pub static ref STORAGE: MutStatic<Storage> = MutStatic::from(Storage::new());    // pub static ref STORAGE: Storage = Storage::new();
+}
+
+#[ffi_export]
+pub fn reset() {
+    let mut storage = STORAGE
+        .write()
+        .expect("Failed to grab a lock to mutate the Storage object");
+    storage.reset();
 }
 
 #[ffi_export]
@@ -53,7 +64,10 @@ pub fn includes(key: Option<char_p::Box>) -> bool {
 pub fn set(key: char_p::Box, value: char_p::Box) {
     let k = key.to_string();
     let v = value.to_string();
-    STORAGE.write().unwrap().set(&k, &v);
+    STORAGE
+        .write()
+        .expect("Failed to grab a lock to mutate the Storage object")
+        .set(&k, &v);
 }
 
 #[ffi_export]
