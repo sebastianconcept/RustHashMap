@@ -8,7 +8,7 @@ extern crate mut_static;
 use ::safer_ffi::prelude::*;
 use core::option::Option;
 use mut_static::MutStatic;
-use std::collections::HashMap;
+use std::{collections::HashMap, ffi::CString};
 
 pub struct Storage {
     pub store: HashMap<String, String>,
@@ -26,10 +26,27 @@ impl Storage {
     pub fn set(&mut self, key: &String, value: &String) {
         self.store.insert(key.to_owned(), value.to_owned());
     }
+    pub fn includes(&self, key: &String) -> bool {
+        self.store.contains_key(key)
+    }
 }
 
 lazy_static! {
     pub static ref STORAGE: MutStatic<Storage> = MutStatic::from(Storage::new());    // pub static ref STORAGE: Storage = Storage::new();
+}
+
+#[ffi_export]
+pub fn includes(key: Option<char_p::Box>) -> bool {
+    let answer = match key {
+        None => false,
+        Some(k) => {
+            let storage = STORAGE
+                .read()
+                .expect("Failed to grab a lock to read in the Storage object");
+            storage.includes(&k.to_string())
+        }
+    };
+    answer
 }
 
 #[ffi_export]
@@ -40,23 +57,24 @@ pub fn set(key: char_p::Box, value: char_p::Box) {
 }
 
 #[ffi_export]
-pub fn get(key: char_p::Box) -> Option<char_p::Box> {
-    // let found = STORAGE
-    //     .read()
-    //     .expect("Failed to grab a lock to read in the Storage object")
-    //     .get(&key.to_string());
-    // match found {
-    //     None => None,
-    //     Some(v) => v.to_owned().try_into().unwrap(),
-    // }
-    Some(STORAGE
-        .read()
-        .expect("Failed to grab a lock to read in the Storage object")
-        .get(&key.to_string())
-        .unwrap()
-        .to_owned()
-        .try_into()
-        .unwrap())
+pub fn get(key: Option<char_p::Box>) -> Option<char_p::Box> {
+    let answer = match key {
+        None => None,
+        Some(k) => {
+            let storage = STORAGE
+                .read()
+                .expect("Failed to grab a lock to read in the Storage object");
+            let value = storage.get(&k.to_string());
+            match value {
+                None => None,
+                Some(r) => {
+                    let value = CString::new(r.to_owned()).ok().unwrap();
+                    char_p::Box::try_from(value).ok()
+                }
+            }
+        }
+    };
+    answer
 }
 
 #[ffi_export]
