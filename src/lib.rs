@@ -32,10 +32,28 @@ impl Storage {
     pub fn reset(&mut self) {
         self.store.clear()
     }
+    pub fn snapshot(&self, path: &String) -> bool {
+        print!("Snapshooting storage for {}", path);
+        true
+    }
 }
 
 lazy_static! {
     pub static ref STORAGE: MutStatic<Storage> = MutStatic::from(Storage::new());    // pub static ref STORAGE: Storage = Storage::new();
+}
+
+#[ffi_export]
+pub fn snapshot(path: Option<char_p::Box>) -> bool {
+    let answer = match path {
+        None => false,
+        Some(k) => {
+            let storage = STORAGE
+                .read()
+                .expect("Failed to grab a lock to read in the Storage object");
+            storage.snapshot(&k.to_string())
+        }
+    };
+    true
 }
 
 #[ffi_export]
