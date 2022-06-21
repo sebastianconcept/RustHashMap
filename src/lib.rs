@@ -26,16 +26,30 @@ impl Storage {
     pub fn set(&mut self, key: &String, value: &String) {
         self.store.insert(key.to_owned(), value.to_owned());
     }
+    pub fn remove(&mut self, key: &String) {
+        self.store.remove(key);
+    }
     pub fn includes(&self, key: &String) -> bool {
         self.store.contains_key(key)
     }
     pub fn reset(&mut self) {
         self.store.clear()
     }
+    pub fn size(&self) -> i32 {
+        self.store.len().try_into().unwrap()
+    }
 }
 
 lazy_static! {
     pub static ref STORAGE: MutStatic<Storage> = MutStatic::from(Storage::new());    // pub static ref STORAGE: Storage = Storage::new();
+}
+
+#[ffi_export]
+pub fn size() -> i32 {
+    let storage = STORAGE
+        .read()
+        .expect("Failed to grab a lock to access the Storage object");
+    storage.size()
 }
 
 #[ffi_export]
@@ -58,6 +72,14 @@ pub fn includes(key: Option<char_p::Box>) -> bool {
         }
     };
     answer
+}
+
+#[ffi_export]
+pub fn remove(key: char_p::Box) {
+    STORAGE
+        .write()
+        .expect("Failed to grab a lock to mutate the Storage object")
+        .remove(&key.to_string());
 }
 
 #[ffi_export]
