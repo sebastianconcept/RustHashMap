@@ -9,14 +9,17 @@ extern crate mut_static;
 use ::safer_ffi::prelude::*;
 use core::option::Option;
 use mut_static::MutStatic;
+use rand::seq::SliceRandom;
 use std::fs::OpenOptions;
 use std::io::{Error, Write};
-use std::path::Path;
+use std::os::raw::c_uint;
 use std::{
     collections::HashMap,
     ffi::CString,
     fs::{self, File},
+    path::Path,
 };
+use uuid::Uuid;
 
 pub struct Storage {
     pub store: HashMap<String, String>,
@@ -50,9 +53,12 @@ impl Storage {
 
 lazy_static! {
     pub static ref STORAGE: MutStatic<Storage> = MutStatic::from(Storage::new());
+    static ref KEYS: MutStatic<Vec<String>> = MutStatic::from(vec!());
 }
 
 pub static OUTPUT_FILE_NAME: &str = "output.txt";
+
+pub static SAMPLE_VALUE: &str = "{\"hlrSgsnNumber\":null,\"sponsoredImsi\":\"525053099536133\",\"vlrMscNumber\":\"792411112905\",\"mnc\":\"02\",\"vlrVlrNumber\":\"792411112905\",\"_id\":\"28981640290848413548099571056\",\"hlrMscNumber\":\"804107924111122\",\"#version\":-928585930571132360,\"hlrScfAddress\":\"14174000087\",\"customerImsi\":\"312300000591679\",\"sponsorName\":\"IMSI10\",\"sponsoredId\":\"10\",\"updatedTime\":\"2019-10-15T00:04:28.483+00:00\",\"hlrVlrNumber\":\"804107924111121\",\"maxGTLength\":15,\"rhToVLRGT\":\"6598541000\",\"vlrCalledTranslationType\":0,\"mme\":null,\"customerMsisdn\":\"879000000591679\",\"mcc\":\"250\",\"pilotMode\":0,\"skipCancelLocation\":null,\"packetSwitched\":false,\"sponsoredMsisdn\":\"65985001136133\",\"vlrSgsnNumber\":null,\"hlrHlrNumber\":\"14174000019\",\"mtSmsRewriteV1\":null,\"creationTime\":\"2019-10-15T00:04:28.483+00:00\",\"#instanceOf\":\"RHVlrImsiMapping\"}";
 
 fn reset_output() {
     if Path::new(OUTPUT_FILE_NAME).exists() {
@@ -74,16 +80,75 @@ fn output(contents: String) {
     file.flush().unwrap();
 }
 
+fn bench_inserts(quantity: u32) {
+    let bench_result = benchmarking::measure_function(move |measurer| {
+        measurer.measure(|| {
+            output(format!("Measuring inserts {}...", quantity));
+            for i in 0..quantity {
+                let id = Uuid::new_v4().to_string();
+                let value = format!("{}-{}", id, SAMPLE_VALUE);
+                KEYS.write()
+                    .expect("Failed to grab a lock to mutate the KEYS object")
+                    .push(id.clone());
+                basic_set(id.to_owned(), value);
+                if i % 10000 == 0 {
+                    let content = format!("Adding {}: {}", i, id);
+                    output(content);
+                }
+            }
+        });
+    })
+    .unwrap();
+    let contents = format!("Insertions took {:?}!", bench_result.elapsed());
+    output(contents);
+}
+
+fn bench_reads(quantity: u32) {
+    let bench_result = benchmarking::measure_function(move |measurer| {
+        measurer.measure(|| {
+            output(format!("Measuring {}...", quantity));
+            for i in 0..quantity {
+                if i % 10000 == 0 {
+                    let content = format!("Reading {}", i);
+                    output(content);
+                }
+            }
+        });
+    })
+    .unwrap();
+    let contents = format!("Readings took {:?}!", bench_result.elapsed());
+    output(contents);
+}
+
 #[ffi_export]
-pub fn benchmark(quantity: u8) {
+pub fn benchmark(quantity: c_uint) {
     reset_output();
     output("Starting the benchmarking...".to_string());
-    // benchmarking::warm_up();
-    // print!("Starting benchmarking of {}", quantity);
-    // let mut storage = STORAGE
-    //     .write()
-    //     .expect("Failed to grab a lock to mutate the Storage object");
-    // storage.reset();
+    benchmarking::warm_up();
+    output("Benchmarking warmed up and ready to go.".to_string());
+    bench_inserts(quantity);
+    bench_reads(quantity);
+}
+
+#[ffi_export]
+pub fn keys_size() -> i32 {
+    KEYS.read()
+        .expect("Failed to grab a lock to read the KEYS object")
+        .len()
+        .try_into()
+        .unwrap()
+}
+
+#[ffi_export]
+pub fn keys_any() -> char_p::Box {
+    let keys = KEYS
+        .read()
+        .expect("Failed to grab a lock to read the KEYS object");
+    let which = keys.choose(&mut rand::thread_rng()).unwrap();
+    let value = CString::new(which.to_owned())
+        .ok()
+        .unwrap();
+    char_p::Box::try_from(value).unwrap()
 }
 
 #[ffi_export]
@@ -124,14 +189,18 @@ pub fn remove(key: char_p::Box) {
         .remove(&key.to_string());
 }
 
+fn basic_set(key: String, value: String) {
+    STORAGE
+        .write()
+        .expect("Failed to grab a lock to mutate the Storage object")
+        .set(&key.to_owned(), &value.to_owned());
+}
+
 #[ffi_export]
 pub fn set(key: char_p::Box, value: char_p::Box) {
     let k = key.to_string();
     let v = value.to_string();
-    STORAGE
-        .write()
-        .expect("Failed to grab a lock to mutate the Storage object")
-        .set(&k.to_owned(), &v.to_owned());
+    basic_set(k.to_owned(), v.to_owned());
 }
 
 #[ffi_export]

@@ -13,7 +13,9 @@ libc = "0.2"
 safer-ffi = { version = "*", features = ["proc_macros"] }
 lazy_static = "1.4.0"
 mut_static = "5.0.0"
-benchmarking= "0.4.11"
+uuid = { version = "1.1.2", features = ["v4", "fast-rng", "macro-diagnostics"] }
+benchmarking = "0.4.11"
+rand = "0.8.5"
 
 [features]
 c-headers = ["safer-ffi/headers"]
