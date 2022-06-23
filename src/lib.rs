@@ -3,12 +3,20 @@
 
 #[macro_use]
 extern crate lazy_static;
+extern crate benchmarking;
 extern crate mut_static;
 
 use ::safer_ffi::prelude::*;
 use core::option::Option;
+use std::path::Path;
 use mut_static::MutStatic;
-use std::{collections::HashMap, ffi::CString};
+use std::fs::OpenOptions;
+use std::io::{Error, Write};
+use std::{
+    collections::HashMap,
+    ffi::CString,
+    fs::{self, File},
+};
 
 pub struct Storage {
     pub store: HashMap<String, String>,
@@ -41,7 +49,40 @@ impl Storage {
 }
 
 lazy_static! {
-    pub static ref STORAGE: MutStatic<Storage> = MutStatic::from(Storage::new());    // pub static ref STORAGE: Storage = Storage::new();
+    pub static ref STORAGE: MutStatic<Storage> = MutStatic::from(Storage::new());
+}
+
+pub static OUTPUT_FILE_NAME: &str = "output.txt";
+
+fn reset_output() {
+    if Path::new(OUTPUT_FILE_NAME).exists() {
+        fs::remove_file(OUTPUT_FILE_NAME).unwrap();
+    }
+    File::create(OUTPUT_FILE_NAME).unwrap();
+}
+
+fn output(contents: String) {
+    let is_new = Path::new(OUTPUT_FILE_NAME).exists();
+    let mut file = OpenOptions::new()
+        .create(!is_new)
+        .write(true)
+        .append(true)
+        .open(OUTPUT_FILE_NAME)
+        .unwrap();
+    write!(file, "{}\n", contents).unwrap();
+    file.flush().unwrap();
+}
+
+#[ffi_export]
+pub fn benchmark(quantity: u8) {
+    reset_output();
+    output("Starting the benchmarking...".to_string());
+    // benchmarking::warm_up();
+    // print!("Starting benchmarking of {}", quantity);
+    // let mut storage = STORAGE
+    //     .write()
+    //     .expect("Failed to grab a lock to mutate the Storage object");
+    // storage.reset();
 }
 
 #[ffi_export]
@@ -54,6 +95,7 @@ pub fn size() -> i32 {
 
 #[ffi_export]
 pub fn reset() {
+    println!("Reset!");
     let mut storage = STORAGE
         .write()
         .expect("Failed to grab a lock to mutate the Storage object");
