@@ -21,6 +21,7 @@ use std::{
 };
 use uuid::Uuid;
 
+#[derive(Clone)]
 pub struct Storage {
     pub store: HashMap<String, String>,
 }
@@ -31,20 +32,21 @@ impl Storage {
             store: HashMap::new(),
         }
     }
-    pub fn get(&self, key: &String) -> Option<&String> {
-        self.store.get(key)
+
+    pub fn get(&self, key: String) -> Option<String> {
+        self.store.get(&key).cloned()
     }
-    pub fn set(&mut self, key: &String, value: &String) {
-        self.store.insert(key.to_string(), value.to_string());
+    pub fn includes(&self, key: String) -> bool {
+        self.store.contains_key(&key)
     }
-    pub fn remove(&mut self, key: &String) {
-        self.store.remove(key);
-    }
-    pub fn includes(&self, key: &String) -> bool {
-        self.store.contains_key(key)
+    pub fn remove(&mut self, key: String) {
+        self.store.remove(&key);
     }
     pub fn reset(&mut self) {
         self.store.clear()
+    }
+    pub fn set(&mut self, key: String, value: String) {
+        self.store.insert(key, value);
     }
     pub fn size(&self) -> i32 {
         self.store.len().try_into().unwrap()
@@ -83,18 +85,18 @@ fn output(contents: String) {
 fn bench_inserts(quantity: u32) {
     let bench_result = benchmarking::measure_function(move |measurer| {
         measurer.measure(|| {
-            output(format!("Measuring inserts {}...", quantity));
-            for i in 0..quantity {
+            output(format!("Measuring Rust HashMap {} inserts...", quantity));
+            for _i in 0..quantity {
                 let id = Uuid::new_v4().to_string();
                 let value = format!("{}-{}", id, SAMPLE_VALUE);
                 KEYS.write()
                     .expect("Failed to grab a lock to mutate the KEYS object")
                     .push(id.clone());
                 basic_set(id.to_owned(), value);
-                if i % 10000 == 0 {
-                    let content = format!("Adding {}: {}", i, id);
-                    output(content);
-                }
+                // if i % 100000 == 0 {
+                //     let content = format!("Adding {}: {}", i, id);
+                //     output(content);
+                // }
             }
         });
     })
@@ -106,12 +108,14 @@ fn bench_inserts(quantity: u32) {
 fn bench_reads(quantity: u32) {
     let bench_result = benchmarking::measure_function(move |measurer| {
         measurer.measure(|| {
-            output(format!("Measuring {}...", quantity));
-            for i in 0..quantity {
-                if i % 10000 == 0 {
-                    let content = format!("Reading {}", i);
-                    output(content);
-                }
+            output(format!("Measuring Rust HashMap {} reads...", quantity));
+            for _i in 0..quantity {
+                let key = basic_keys_any();
+                let _value = basic_get(key.clone()).unwrap();
+                // if i % 100000 == 0 {
+                //     let content = format!("Reading {} with {}", key, value);
+                //     output(content);
+                // }
             }
         });
     })
@@ -139,15 +143,17 @@ pub fn keys_size() -> i32 {
         .unwrap()
 }
 
-#[ffi_export]
-pub fn keys_any() -> char_p::Box {
+fn basic_keys_any() -> String {
     let keys = KEYS
         .read()
         .expect("Failed to grab a lock to read the KEYS object");
-    let which = keys.choose(&mut rand::thread_rng()).unwrap();
-    let value = CString::new(which.to_owned())
-        .ok()
-        .unwrap();
+    keys.choose(&mut rand::thread_rng()).unwrap().to_owned()
+}
+
+#[ffi_export]
+pub fn keys_any() -> char_p::Box {
+    let which = basic_keys_any();
+    let value = CString::new(which.to_owned()).ok().unwrap();
     char_p::Box::try_from(value).unwrap()
 }
 
@@ -175,7 +181,7 @@ pub fn includes(key: Option<char_p::Box>) -> bool {
             let storage = STORAGE
                 .read()
                 .expect("Failed to grab a lock to read in the Storage object");
-            storage.includes(&k.to_string())
+            storage.includes(k.to_string())
         }
     };
     answer
@@ -186,14 +192,14 @@ pub fn remove(key: char_p::Box) {
     STORAGE
         .write()
         .expect("Failed to grab a lock to mutate the Storage object")
-        .remove(&key.to_string());
+        .remove(key.to_string());
 }
 
 fn basic_set(key: String, value: String) {
     STORAGE
         .write()
         .expect("Failed to grab a lock to mutate the Storage object")
-        .set(&key.to_owned(), &value.to_owned());
+        .set(key.to_owned(), value.to_owned());
 }
 
 #[ffi_export]
@@ -203,19 +209,25 @@ pub fn set(key: char_p::Box, value: char_p::Box) {
     basic_set(k.to_owned(), v.to_owned());
 }
 
+fn basic_get(key: String) -> Option<String> {
+    STORAGE
+        .read()
+        .expect("Failed to grab a lock to read in the Storage object")
+        .get(key)
+}
+
 #[ffi_export]
 pub fn get(key: Option<char_p::Box>) -> Option<char_p::Box> {
     let answer = match key {
         None => None,
+
         Some(k) => {
-            let storage = STORAGE
-                .read()
-                .expect("Failed to grab a lock to read in the Storage object");
-            let value = storage.get(&k.to_string());
+            let parsed_key = k.to_string();
+            let value = basic_get(parsed_key);
             match value {
                 None => None,
-                Some(r) => {
-                    let value = CString::new(r.to_owned()).ok().unwrap();
+                Some(f) => {
+                    let value = CString::new(f.clone()).ok().unwrap();
                     char_p::Box::try_from(value).ok()
                 }
             }
