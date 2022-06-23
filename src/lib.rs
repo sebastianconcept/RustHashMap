@@ -8,10 +8,10 @@ extern crate mut_static;
 
 use ::safer_ffi::prelude::*;
 use core::option::Option;
-use std::path::Path;
 use mut_static::MutStatic;
 use std::fs::OpenOptions;
 use std::io::{Error, Write};
+use std::path::Path;
 use std::{
     collections::HashMap,
     ffi::CString,
@@ -70,6 +70,7 @@ fn output(contents: String) {
         .open(OUTPUT_FILE_NAME)
         .unwrap();
     write!(file, "{}\n", contents).unwrap();
+    println!("{}", contents);
     file.flush().unwrap();
 }
 
@@ -95,7 +96,6 @@ pub fn size() -> i32 {
 
 #[ffi_export]
 pub fn reset() {
-    println!("Reset!");
     let mut storage = STORAGE
         .write()
         .expect("Failed to grab a lock to mutate the Storage object");
