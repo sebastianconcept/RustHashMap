@@ -8,6 +8,8 @@
 ehthumbs.db
 Thumbs.db
 
+
+./ffiexercise
 *.out
 *.out.*
 

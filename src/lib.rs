@@ -24,7 +24,7 @@ impl Storage {
         self.store.get(key)
     }
     pub fn set(&mut self, key: &String, value: &String) {
-        self.store.insert(key.to_owned(), value.to_owned());
+        self.store.insert(key.to_string(), value.to_string());
     }
     pub fn remove(&mut self, key: &String) {
         self.store.remove(key);
@@ -89,7 +89,7 @@ pub fn set(key: char_p::Box, value: char_p::Box) {
     STORAGE
         .write()
         .expect("Failed to grab a lock to mutate the Storage object")
-        .set(&k, &v);
+        .set(&k.to_owned(), &v.to_owned());
 }
 
 #[ffi_export]
@@ -114,18 +114,14 @@ pub fn get(key: Option<char_p::Box>) -> Option<char_p::Box> {
 }
 
 #[ffi_export]
-pub fn getOwnedCStr() -> char_p::Box {
-    char_p::new("Hello, World!\0")
-}
-
-#[ffi_export]
-pub fn freeOwnedCStr(p: Option<char_p::Box>) {
-    drop(p);
-}
-
-#[ffi_export]
 pub fn echo(key: char_p::Box) -> char_p::Box {
     let answer = String::from(key.to_str());
+    answer.try_into().unwrap()
+}
+
+#[ffi_export]
+pub fn version() -> char_p::Box {
+    let answer = String::from("0.1.1");
     answer.try_into().unwrap()
 }
 
