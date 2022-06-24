@@ -7,7 +7,6 @@ extern crate benchmarking;
 extern crate mut_static;
 
 use ::safer_ffi::prelude::*;
-use core::option::Option;
 use mut_static::MutStatic;
 use rand::seq::SliceRandom;
 use std::fs::OpenOptions;
@@ -101,7 +100,7 @@ fn bench_inserts(quantity: u32) {
         });
     })
     .unwrap();
-    let contents = format!("Insertions took {:?}!", bench_result.elapsed());
+    let contents = format!("It took {:?} to perform {} insertions", bench_result.elapsed(), quantity);
     output(contents);
 }
 
@@ -120,7 +119,7 @@ fn bench_reads(quantity: u32) {
         });
     })
     .unwrap();
-    let contents = format!("Readings took {:?}!", bench_result.elapsed());
+    let contents = format!("It took {:?} to perform {} reads", bench_result.elapsed(), quantity);
     output(contents);
 }
 
