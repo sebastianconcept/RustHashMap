@@ -1,5 +1,7 @@
 {
   "files.associations": {
-    "librusthashmap.h": "c"
+    "librusthashmap.h": "c",
+    "string": "c",
+    "iosfwd": "c"
   }
 }
