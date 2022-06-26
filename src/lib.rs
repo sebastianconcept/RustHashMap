@@ -173,21 +173,21 @@ pub fn reset() {
 }
 
 #[ffi_export]
-pub fn includes(key: Option<char_p::Box>) -> bool {
+pub fn includes(key: Option<char_p::Ref<'_>>) -> bool {
     let answer = match key {
         None => false,
         Some(k) => {
             let storage = STORAGE
                 .read()
                 .expect("Failed to grab a lock to read in the Storage object");
-            storage.includes(k.to_string())
+            storage.includes(k.to_string().clone())
         }
     };
     answer
 }
 
 #[ffi_export]
-pub fn remove(key: char_p::Box) {
+pub fn remove_key(key: char_p::Ref<'_>) {
     STORAGE
         .write()
         .expect("Failed to grab a lock to mutate the Storage object")
@@ -198,14 +198,14 @@ fn basic_set(key: String, value: String) {
     STORAGE
         .write()
         .expect("Failed to grab a lock to mutate the Storage object")
-        .set(key.to_owned(), value.to_owned());
+        .set(key, value);
 }
 
 #[ffi_export]
-pub fn set(key: char_p::Box, value: char_p::Box) {
+pub fn set(key: char_p::Ref<'_>, value: char_p::Ref<'_>) {
     let k = key.to_string();
     let v = value.to_string();
-    basic_set(k.to_owned(), v.to_owned());
+    basic_set(k, v);
 }
 
 fn basic_get(key: String) -> Option<String> {
@@ -216,7 +216,7 @@ fn basic_get(key: String) -> Option<String> {
 }
 
 #[ffi_export]
-pub fn get(key: Option<char_p::Box>) -> Option<char_p::Box> {
+pub fn get(key: Option<char_p::Ref<'_>>) -> Option<char_p::Box> {
     let answer = match key {
         None => None,
 
@@ -236,15 +236,15 @@ pub fn get(key: Option<char_p::Box>) -> Option<char_p::Box> {
 }
 
 #[ffi_export]
-pub fn echo(key: char_p::Box) -> char_p::Box {
+pub fn echo(key: char_p::Ref<'_>) -> char_p::Box {
     let answer = String::from(key.to_str());
     answer.try_into().unwrap()
 }
 
 #[ffi_export]
-pub fn version() -> char_p::Box {
+pub fn version() -> Option<char_p::Box> {
     let answer = String::from("0.1.1");
-    answer.try_into().unwrap()
+    Some(answer.try_into().unwrap())
 }
 
 #[ffi_export]
