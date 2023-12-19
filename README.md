@@ -16,7 +16,7 @@ With [RediStick](https://github.com/mumez/RediStick) and [ABBench](https://githu
 RsRedisConnectionPool primaryUrl: 'sync://localhost:6379'.
 redis := RsRedisProxy of: #client1.
 
-sample1 := '{"id":123,"name":"Sample JSON","description":"This is a sample JSON object with approximately 1024 bytes of data. It's used for demonstration purposes.","tags":["json","sample","data"],"details":{"created_at":"2023-04-01T12:00:00","updated_at":"2023-04-01T14:30:00","status":"active"},"values":[1,2,3,4,5,6,7,8,9,10],"settings":{"enabled":true,"threshold":50,"options":["option1","option2","option3"]},"comments":[{"user":"user1","text":"This is a comment."},{"user":"user2","text":"Another comment here."}]}'.
+sample1 := '{"id":123,"name":"Sample JSON","description":"This is a sample JSON object with approximately 1024 bytes of data. It''s used for demonstration purposes.","tags":["json","sample","data"],"details":{"created_at":"2023-04-01T12:00:00","updated_at":"2023-04-01T14:30:00","status":"active"},"values":[1,2,3,4,5,6,7,8,9,10],"settings":{"enabled":true,"threshold":50,"options":["option1","option2","option3"]},"comments":[{"user":"user1","text":"This is a comment."},{"user":"user2","text":"Another comment here."}]}'.
 
 keys := (1 to: 10000) collect:[ :e | UUID new asString36 ].
 values := (1 to: 10000) collect:[ :e | UUID new asString36, '-',sample1 ].
