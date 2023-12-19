@@ -10,7 +10,7 @@ use ::safer_ffi::prelude::*;
 use mut_static::MutStatic;
 use rand::seq::SliceRandom;
 use std::fs::OpenOptions;
-use std::io::{Error, Write};
+use std::io::Write;
 use std::os::raw::c_uint;
 use std::{
     collections::HashMap,
@@ -100,7 +100,11 @@ fn bench_inserts(quantity: u32) {
         });
     })
     .unwrap();
-    let contents = format!("It took {:?} to perform {} insertions", bench_result.elapsed(), quantity);
+    let contents = format!(
+        "It took {:?} to perform {} insertions",
+        bench_result.elapsed(),
+        quantity
+    );
     output(contents);
 }
 
@@ -119,7 +123,11 @@ fn bench_reads(quantity: u32) {
         });
     })
     .unwrap();
-    let contents = format!("It took {:?} to perform {} reads", bench_result.elapsed(), quantity);
+    let contents = format!(
+        "It took {:?} to perform {} reads",
+        bench_result.elapsed(),
+        quantity
+    );
     output(contents);
 }
 
