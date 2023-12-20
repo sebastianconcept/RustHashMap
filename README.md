@@ -123,10 +123,5 @@ fn main() {
 In this example, we create a `Storage` instance, set key-value pairs, and retrieve values.
 The `lazy_static` crate is used for creating a global, lazy-initialized instance of `Storage`.
 
-## Dependencies
-This doesn't have any dependencies other than `Rust` itself:
-
-    https://www.rust-lang.org/tools/install
-
-
+____
 [1] An Intel based MacBook Pro, 2,5 GHz Quad-Core Intel Core i7
